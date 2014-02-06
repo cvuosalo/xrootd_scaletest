@@ -32,53 +32,56 @@ hist_opentimes = ROOT.TH1F("hist_opentimes", "concurrent job successes as a func
 hist_opentimes.Sumw2()
 #hist_active_jobs.SetMaximum(1)
 
-# this extra for loop destroys computation time and seems stupid,
-# but I have yet to come up with a better way to only fill the histogram
-# once per job per time interval
-for i in range(nbins):
-    print 'processing bin ', i
-    test_files = open(sys.argv[1])
-    for filename in test_files:
-        filename = filename.rstrip('\n')
-        # print "opening file %s ..." % filename
-        file = open(filename)
-        ## I want this h to be temporary and have maximum bin value of one so that we count 
-        ## the number of jobs actually running during the time period rather than simply the 
-        ## number of jobs that started (a job can have multiple file i/o's in a time interval).
-        ##h = ROOT.TH1F("h", "h",  nbins, overall_start_time, overall_start_time + test_length) 
-        for line in file:
-            if ("RESULT" in line):
-                #print line
-                results = line.split()
-                if (len(results) != 5): continue;
-                
-                xrootd_filename = results[1]
-                if (results[2] == "success"):
-                    job_success = True
-                else: 
-                    job_success = False
-                start_time = int(results[3]) - overall_start_time
-               
-                # jobs were limited to run at 2 Hz 
-                run_time = float(results[4])
-                if (run_time < 0.5):
-                    run_time = 0.5
+test_files = open(sys.argv[1])
+binjoblist = []
+for job_num in xrange(201):
+	binjoblist.append([]) 
+	for bin_num in xrange(nbins + 1):
+		binjoblist[job_num].append(0) 
+# print 'bjl ', binjoblist
+job_num = 0
+for filename in test_files:
+    filename = filename.rstrip('\n')
+    # print "opening file %s ..." % filename
+    file = open(filename)
+    job_in_bin = 0
+    for line in file:
+	if ("RESULT" in line):
+	    #print line
+	    results = line.split()
+	    if (len(results) != 5): continue;
+	    
+	    xrootd_filename = results[1]
+	    if (results[2] == "success"):
+		job_success = True
+	    else: 
+		job_success = False
+	    start_time = int(results[3]) - overall_start_time
+	   
+	    # jobs were limited to run at 2 Hz 
+	    run_time = float(results[4])
+	    if (run_time < 0.5):
+		run_time = 0.5
 
-                if (job_success):
-                    hist_job_successes.Fill(start_time)
-                    hist_opentimes.Fill(start_time, run_time)
-                else: 
-                    hist_job_failures.Fill(start_time)
-                
-                #hist_opentimes.Fill(start_time, run_time)
-                
-                if (start_time > intervals[str(i)][0] and start_time < intervals[str(i)][1] ):
-                    # fill each time interval at most once per job
-                    hist_active_jobs.Fill(round(start_time))
-          
-                    break;
-        file.close()
-    test_files.close()
+	    if (job_success):
+		hist_job_successes.Fill(start_time)
+		hist_opentimes.Fill(start_time, run_time)
+	    else: 
+		hist_job_failures.Fill(start_time)
+	    
+	    #hist_opentimes.Fill(start_time, run_time)
+	    
+	    bin_num = hist_active_jobs.FindBin(start_time)
+	    if (bin_num > nbins):
+		print 'bad bin, start time ', bin_num, start_time
+	    elif (binjoblist[job_num][bin_num] == 0):
+		# fill each time interval at most once per job
+		hist_active_jobs.Fill(round(start_time))
+		binjoblist[job_num][bin_num] = 1
+    job_num = job_num + 1
+    file.close()
+test_files.close()
+# print 'bjl ', binjoblist
 
 # make plot of success/failure rate vs # clients running concurrently
 n_clients = ROOT.TVectorF()
@@ -108,14 +111,14 @@ for i in range(nbins):
 
     run_times_combined = hist_opentimes.GetBinContent(i+1)
     run_times_error = hist_opentimes.GetBinError(i+1)
-    print 'runtime, err, successes ', run_times_combined, run_times_error, s
-    if (s == 0): break
+    print 'runtime, successes ', run_times_combined, s
+    if (s == 0): continue
     performance_measure = n_clients / ( run_times_combined/(s) ) 
     performance_error = (run_times_error /  run_times_combined) * performance_measure
     graph3_b.SetPoint(graph3.GetN(), n_clients, run_times_combined/(s))
     graph3.SetPoint(graph3.GetN(), exp_rate, performance_measure)
     graph3.SetPointError(graph3.GetN(), 0.0, performance_error )
-    print run_times_combined/(s)
+    print 'njobs, avg time ', n_clients, run_times_combined/(s)
     graph4.SetPoint(graph4.GetN(), i*bin_size, performance_measure )
 
 c1 = ROOT.TCanvas("c1", "c1")
@@ -152,7 +155,8 @@ graph2.SetTitle(sys.argv[5])
 graph2.GetXaxis().SetTitle("Expected rate (Hz)")
 # graph2.GetXaxis().SetTitle("# of Active Clients")
 graph2.GetYaxis().SetTitle("Fractional failure rate (%)")
-graph2.GetYaxis().SetRangeUser(0, 6)
+graph2.GetYaxis().SetTitleOffset(1.1)
+# graph2.GetYaxis().SetRangeUser(0, 6)
 graph2.GetXaxis().SetRangeUser(0, 250)
 graph2.Draw("AP")
 c1.SaveAs("plots/" + outfilebase + "_frate_vs_exprate.png")
