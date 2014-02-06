@@ -1,0 +1,10 @@
+#!/bin/sh
+
+if [ -z "${CONDOR_DIR}" ]; then
+  echo "You must source the condor environment setup.sh first"
+  exit 1
+fi
+
+mkdir -p ${CONDOR_DIR}/{execute,spool,log}
+
+/usr/sbin/condor_master -pidfile ${MASTER_PIDFILE}

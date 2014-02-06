@@ -1,0 +1,43 @@
+#!/bin/sh
+
+# For all schedds in the default condor pool, increase
+# MAX_JOBS_RUNNING by $1 every $2 seconds until above $3
+
+job_increment=$1
+delay=$2
+max_jobs=$3
+
+all_schedds=$(condor_status -schedd -format "%s " MyAddress)
+
+echo job_increment=$job_increment
+echo delay=$delay
+echo max_jobs=$max_jobs
+echo all_schedds=$all_schedds
+
+config_all_schedds() {
+  cfg_setting=$1
+  cfg_var=$(echo $cfg_setting | awk -F= '{print $1}')
+  for schedd in $all_schedds; do
+    condor_config_val -address "$schedd" -rset $cfg_setting
+    condor_reconfig -addr "$schedd"
+  done
+  for schedd in $all_schedds; do
+    echo "Checking $schedd"
+    condor_config_val -address "$schedd" $cfg_var
+  done
+}
+
+jobs=0
+while true; do
+  jobs=$((jobs+job_increment))
+  if [ "$jobs" -gt "$max_jobs" ]; then
+    echo "Reached $jobs > $max_jobs at $(date)"
+    sleep $((2*delay))
+    condor_rm -all
+    config_all_schedds MAX_JOBS_RUNNING=0
+    break
+  fi
+  config_all_schedds MAX_JOBS_RUNNING=$jobs
+  echo "Setting MAX_JOBS_RUNNING=$jobs at $(date)"
+  sleep $delay
+done

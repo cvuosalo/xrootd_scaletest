@@ -1,0 +1,10 @@
+#!/bin/sh
+
+. /afs/hep.wisc.edu/cms/sw/AAA/scaletest/setup.sh
+
+if [ -f $MASTER_PIDFILE ]; then
+  pid=$(cat $MASTER_PIDFILE)
+  echo "Killing pid $pid"
+  ps uwww $pid
+  kill $pid
+fi
