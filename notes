@@ -1,1 +1,71 @@
-/afs/hep.wisc.edu/cms/sw/AAA/scaletest/notes
+How to run file open flood test:
+
+Update the site file list.  This can take several days to complete,
+but subsequent runs are faster, because it cashes information about
+blocks it has already queried.  The results will be in a file named
+<site>.files.
+
+mkdir -p /scratch/${USER}/AAA_scaletest
+cd /scratch/${USER}/AAA_scaletest
+/afs/hep.wisc.edu/cms/sw/AAA/scaletest/list_files T2_US_Nebraska >& list_files.unl.log < /dev/null &
+
+
+If needed, do that for the full list of US sites:
+
+T2_US_Caltech
+T2_US_Florida
+T2_US_MIT
+T2_US_Nebraska
+T2_US_Purdue
+T2_US_UCSD
+T2_US_Wisconsin
+
+
+When the file lists are ready, create jobs from them:
+
+TESTNAME=$(date "+%Y-%m-%d")
+mkdir -p /scratch/${USER}/AAA_scaletest/${TESTNAME}
+cd /scratch/${USER}/AAA_scaletest/${TESTNAME}
+
+voms-proxy-init --voms=cms --valid=100:00
+
+/afs/hep.wisc.edu/cms/sw/AAA/scaletest/make_jobs 200 ../T2_US_Nebraska.files root://xrootd-itb.unl.edu//store/test/xrootd/T2_US_Nebraska
+
+# Note: xrootd-itb.unl.edu has not been working.  It just hangs.  This is still true as of 2014-01-27.
+# So use the production system xrootd.unl.edu instead.
+
+# ( To test directly against the Wisconsin redirector, use root://s17n02.hep.wisc.edu//store/... instead of root://xrootd-itb.unl.edu//store/... )
+
+# The path /store/test/xrootd/<sitename> has special meaning.  Each
+# site has a special entry in its Trivial File Catalog that points
+# that path back to the root path of the site.  The result is that the
+# above xrootd URL is guaranteed to only get redirected to
+# T2_US_Nebraska, even if the file exists at multiple sites.
+
+
+Start up the condor pool for running test jobs.  On each node, run the commands
+
+source /afs/hep.wisc.edu/cms/sw/AAA/scaletest/setup.sh
+/afs/hep.wisc.edu/cms/sw/AAA/scaletest/start_condor
+
+The central manager and submit node is login04.  The rest of the nodes
+are worker nodes.  Start as many as needed for the scale of the test.
+
+Set up the worker nodes:
+ssh-pwrd-many -p --hosts="$(cat /cms/sw/AAA/scaletest/worker_node_list)" --command="source /cms/sw/AAA/scaletest/setup.sh; /cms/sw/AAA/scaletest/start_condor"
+
+Submit the jobs:
+
+cd T2_US_Nebraska-xrootd-itb.unl.edu.jobs
+echo submit* | xargs -n1 condor_submit
+
+Control how many jobs run at one time:
+
+# start 10 workers every 5 minutes until 100 are running
+/afs/hep.wisc.edu/cms/sw/AAA/scaletest/ramp_up_jobs 10 300 100 >& ramp.log < /dev/null &
+
+
+When all done, shut down the test condor pool.
+
+source /afs/hep.wisc.edu/cms/sw/AAA/scaletest/setup.sh
+condor_off -master -all
