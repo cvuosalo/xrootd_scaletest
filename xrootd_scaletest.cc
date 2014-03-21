@@ -12,8 +12,6 @@ int main(int argc, char** argv) {
     exit(1);
   }
 
-  dup2(1,2);
-
   std::ifstream input_files(argv[1]);
   double iteration_length = atof(argv[2]);
   printf("Attempting to open files in %s at rate of one file per %.6lf seconds\n", 
