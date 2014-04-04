@@ -1,0 +1,45 @@
+File-read test
+
+These instructions assume you have a Condor pool to use for running jobs. See the file-open test instructions
+to create such a pool.
+
+1. A file list is needed. Each job will read from a different file. Use the full file list for a site from the 
+file-open test and split it into smaller files:
+
+split -d -a 3 T2_US_ABCD.files filenameprefix
+
+where T2_US_ABCD.files is the full file list, and filenameprefix is some file name prefix for the smaller
+files that will be created.
+
+2. Create a directory for the current day, like 2012-04-03, and cd into it.
+
+3. Create the submit files with mkreadjobs.sh:
+
+../mkreadjobs.sh 900  filelist    root://xrootd.unl.edu//store/test/xrootd/T2_US_ABCD
+
+filelist should be one of the files created in step 1. Every time a file-read test is done for the same site,
+a different file can be used so no effects of file caching will confound the test results.
+
+4. cd into the newly created directory for the site and do:
+
+echo submit* | xargs -n1 condor_submit
+/afs/hep.wisc.edu/cms/sw/AAA/scaletest/ramp_up_jobs 50 240 800 >& ramp.log < /dev/null &
+
+5. The jobs will run for about an hour. Monitor them with condor_q.
+
+6. Run get_times to get the start timestamp and test duration:
+
+../../get_times
+
+The first timestamp output is the starting one, and the last number is the test duration.
+
+7. To make the plots, use readjobsplot.py. See runplots.sh for an example of the parameters it requires:
+
+python readjobsplot.py stdout_file_list test_duration bin_size start_timestamp RTT sitename
+
+stdout_file_list is the list of the stdout files from the test, test_duration is the duration of the test in seconds,
+bin_size is the bin size for the plots in seconds (usually about test_duration/20), and start_timestamp
+is the time stamp of the first file-read attempt.
+
+RTT is the round-trip time from your location to the site. If you can find the name of the XrootD server at the site,
+you can use ping to find the RTT. It is usually around 0.05 s.
