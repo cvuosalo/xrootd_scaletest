@@ -1,9 +1,9 @@
-xrdloc := /cvmfs/cms.cern.ch/slc6_amd64_gcc472/external/xrootd/3.2.4-cms4
+xrdloc := /usr
 
 # both: xrdfragcp xrdfragcpnew
 
 xrdfragcp: xrdfragcp.cxx
-	${CXX} -o $@ -I${xrdloc}/include/xrootd -L${xrdloc}/lib -l XrdClient -l pcrecpp -pthread $<
+	${CXX} -o $@ -I${xrdloc}/include/xrootd -L${xrdloc}/lib -l XrdCl -l pcrecpp -pthread $<
 
 xrdfragcpnew: xrdfragcpnew.cxx
 	${CXX} -o $@ -I${xrdloc}/include/xrootd -L${xrdloc}/lib  -lXrdCl -lXrdUtils -lpcrecpp -pthread $<

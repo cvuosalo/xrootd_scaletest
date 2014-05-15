@@ -7,9 +7,9 @@
 // Example usage:
 //   ./xrdfragcp --frag 0 1024 --frag 2048 1024 root://xrootd.unl.edu//store/mc/Summer12/WJetsToLNu_TuneZ2Star_8TeV-madgraph-tarball/AODSIM/PU_S7_START52_V9-v2/00000/E47B9F8B-42EF-E111-A3A4-003048FFD756.root
 
-#include "XrdClient/XrdClient.hh"
-#include "XrdClient/XrdClientAdmin.hh"
-
+#include "XrdCl/XrdClFile.hh"
+#include "XrdCl/XrdClDefaultEnv.hh"
+#include <iostream>
 #include <pcrecpp.h>
 
 #include <memory>
@@ -108,7 +108,7 @@ void next_arg_or_die(lStr_t& args, lStr_i& i, bool allow_single_minus=false)
   lStr_i j = i;
   if (++j == args.end() || ((*j)[0] == '-' && ! (*j == "-" && allow_single_minus)))
   {
-    cerr <<"Error: option "<< *i <<" requires an argument.\n";
+    std::cerr <<"Error: option "<< *i <<" requires an argument.\n";
     exit(1);
   }
   i = j;
@@ -271,22 +271,22 @@ void App::Run()
 
 void App::GetFrags()
 {
-  std::auto_ptr<XrdClient> c( new XrdClient(mUrl.c_str()) );
+  std::auto_ptr<XrdCl::File> c( new XrdCl::File() );
 
-  if ( ! c->Open(0, kXR_async) || c->LastServerResp()->status != kXR_ok)
+  if ( ! c->Open(mUrl, XrdCl::OpenFlags::Read, XrdCl::Access::None).IsOK() )
   {
     fprintf(stderr, "Error opening file '%s'.\n", mUrl.c_str());
     exit(1);
   }
 
-  XrdClientStatInfo si;
-  c->Stat(&si);
+  XrdCl::StatInfo *statInfo = NULL;
+  c->Stat(false, statInfo);
 
   for (lFrag_i i = mFrags.begin(); i != mFrags.end(); ++i)
   {
-    if (i->fOffset + i->fLength > si.size)
+    if (i->fOffset + i->fLength > statInfo->GetSize())
     {
-      fprintf(stderr, "Error: requested chunk not in file, file-size=%lld.\n", si.size);
+      fprintf(stderr, "Error: requested chunk not in file, file-size=%lld.\n", statInfo->GetSize());
       exit(1);
     }
   }
@@ -315,7 +315,8 @@ void App::GetFrags()
       exit(1);
     }
 
-    c->Read(&buf[0], i->fOffset, i->fLength);
+    uint32_t bytesRead;
+    c->Read(i->fOffset, i->fLength, &buf[0], bytesRead);
 
     write(fd, &buf[0], i->fLength);
 
@@ -336,38 +337,34 @@ void App::GetChecksum()
   // Fuck me silly, copied from XrdCommandLine.cc
   // url_proto_host += "//dummy";
   
-  std::auto_ptr<XrdClientAdmin> ca( new XrdClientAdmin(mUrl.c_str()) );
-  if ( ! ca->Connect())
-  {
-      fprintf(stderr, "Connecting with XrdClientAdmin failed.\n");
-      exit(1);
-  }
+  XrdCl::FileSystem ca(mUrl);
 
   unsigned char *csum = 0;
-  long  ret = ca->GetChecksum((unsigned char *) url_file.c_str(), &csum);
-  if (ret <= 0)
+  XrdCl::Buffer arg, *response=NULL;
+  if (!ca.Query(XrdCl::QueryCode::Checksum , arg, response).IsOK())
   {
     fprintf(stderr, "Retrival of checksum failed.\n");
     exit(1);
   }
 
-  std::cout << "Checksumma retval is " << ret << " and da sum '" << csum << "'\n";
+  std::cout << "Checksum is '" << response->ToString() << "'\n";
 }
 
 //------------------------------------------------------------------------------
 
 void App::CmsClientSim()
 {
-  std::auto_ptr<XrdClient> c( new XrdClient(mUrl.c_str()) );
+  XrdCl::DefaultEnv::SetLogLevel("Dump");
+  XrdCl::File xfile;
 
-  if ( ! c->Open(0, kXR_async) || c->LastServerResp()->status != kXR_ok)
+  if ( ! xfile.Open(mUrl, XrdCl::OpenFlags::Read, XrdCl::Access::None).IsOK() )
   {
     fprintf(stderr, "Error opening file '%s'.\n", mUrl.c_str());
     exit(1);
   }
 
-  XrdClientStatInfo si;
-  c->Stat(&si);
+  XrdCl::StatInfo *statInfo = NULL;
+  xfile.Stat(false, statInfo);
 
   long long request_size = mCcsBytesToRead / mCcsNReqs;
   if (request_size > 128*1024*1024)
@@ -380,9 +377,9 @@ void App::CmsClientSim()
     fprintf(stderr, "Error: request size (%lld) non-positive.\n", request_size);
     exit(1);
   }
-  if (request_size > si.size)
+  if (request_size > statInfo->GetSize())
   {
-    fprintf(stderr, "Error: request size (%lld) larger than file size (%lld).\n", request_size, si.size);
+    fprintf(stderr, "Error: request size (%lld) larger than file size (%lld).\n", request_size, statInfo->GetSize());
     exit(1);
   }
 
@@ -398,11 +395,9 @@ void App::CmsClientSim()
 
   long long offset = 0;
   long long toread = mCcsBytesToRead;
-  int* vecReq = 0;
-  kXR_int64* vecOff = 0;
+  XrdCl::ChunkList chunks;
   if (mNvread) {
-     vecReq = new int[mNvread];
-     vecOff = new kXR_int64[mNvread];
+     chunks.reserve(mNvread);
   }
 
   if (bVerbose)
@@ -419,7 +414,7 @@ void App::CmsClientSim()
 
     long long req = (toread >= request_size) ? request_size : toread;
 
-    if (offset + req > si.size)
+    if (offset + req > statInfo->GetSize())
     {
       offset = 0;
     }
@@ -431,24 +426,23 @@ void App::CmsClientSim()
     }
 
 
-    kXR_int64 readRet = 0;
+    uint32_t readRet = 0;
     gettimeofday(&beg, 0);
     if (mNvread) {
 
        int vreq = req/mNvread;
        for (int v=0; v<mNvread; ++v) {
-          vecOff[v] = offset + vreq*v; 
-          vecReq[v] = vreq;
-          //  printf("[%d] readv req off = %lld , size = %d",v, vecOff[v],  vecReq[v]);
+          chunks.push_back(XrdCl::ChunkInfo(offset + vreq*v, vreq));
        }
 
-       readRet = c->ReadV(&buf[0], vecOff, vecReq, mNvread);
+       XrdCl::VectorReadInfo *vReadInfo;
+       xfile.VectorRead(chunks, &buf[0], vReadInfo);
        if (bVerbose)
 	       printf(" vector read  from client,  %d x %d, result = %d \n",mNvread,  vreq, readRet);
     }
     else
     {
-       readRet = c->Read(&buf[0], offset, req);
+       xfile.Read(offset, req, &buf[0], readRet);
        printf("plain read  from client req = %d, result = %d \n", req, readRet);
     }
 
