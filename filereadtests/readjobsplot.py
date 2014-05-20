@@ -10,6 +10,7 @@ if (len(sys.argv) != 7):
 
 target_rate = 0.25
 tdrstyle = setTDRStyle()
+tdrStyle.SetPadRightMargin(0.05);
 gStyle.SetOptStat(0)
 gStyle.SetOptTitle(1)
 gStyle.SetTitleX(0.5) # Trick to center histogram title
@@ -201,8 +202,8 @@ for i in range(nbins - 1):	# Omit last bin because it's incomplete
     print 'njobs, avg time ', n_clients, run_times_combined/(s)
     # graph4.SetPoint(graph4.GetN(), i*bin_size, performance_measure )
     
-# binNum = graph2.GetN()
-# graph2.SetPoint(binNum, 0, 0)
+binNum = graph2.GetN()
+graph2.SetPoint(binNum, 0, 0)
 
 
 c1 = TCanvas("c1", "c1")
@@ -228,8 +229,15 @@ c1.SaveAs("plots/" + outfilebase + "_rate_vs_jobs.png")
 graph3b.SetMarkerStyle(8) # big dot
 graph3b.SetTitle(sitename)
 graph3b.GetXaxis().SetTitle("# of jobs")
-graph3b.GetYaxis().SetRangeUser(0.3, 2.7)
+# graph3b.GetYaxis().SetRangeUser(0.3, 2.7)
+if num_lines > 1500:
+	labsiz = 0.04
+else:
+	labsiz = 0.05
+graph3b.GetXaxis().SetLabelSize(labsiz)
+graph3b.GetYaxis().SetLabelSize(labsiz)
 graph3b.GetYaxis().SetTitle("Avg. read time per block [s]")
+graph3b.GetYaxis().SetTitleOffset(1.35)
 graph3b.Draw("APZ")
 texboxrtt.Draw("same")
 c1.SaveAs("plots/" + outfilebase + "_time_vs_jobs.png")
@@ -246,8 +254,8 @@ texbox.Draw("same")
 hist_readrate.SetMarkerStyle(8) # big dot
 hist_readrate.SetTitle(sitename)
 hist_readrate.GetXaxis().SetTitle("Time [s]")
-hist_readrate.GetXaxis().SetLabelSize(0.03)
-hist_readrate.GetYaxis().SetLabelSize(0.03)
+hist_readrate.GetXaxis().SetLabelSize(labsiz)
+hist_readrate.GetYaxis().SetLabelSize(labsiz)
 hist_readrate.GetYaxis().SetTitle("Avg. rate / read [MB/s]")
 # hist_readrate.GetYaxis().SetTitleOffset(1.4)
 hist_readrate.Draw("ep")
@@ -273,27 +281,37 @@ c1.SaveAs("plots/" + outfilebase + "_io_vs_time.png")
 graph1.SetMarkerStyle(8) # big dot
 graph1.SetTitle(sitename)
 graph1.GetXaxis().SetTitle("# of jobs")
-graph1.GetXaxis().SetLabelSize(0.035)
-graph1.GetYaxis().SetLabelSize(0.035)
+graph1.GetXaxis().SetLabelSize(labsiz)
+graph1.GetYaxis().SetLabelSize(labsiz)
 graph1.GetYaxis().SetTitle("Fraction of time waiting for I/O")
 graph1.Draw("APZ")
 c1.SaveAs("plots/" + outfilebase + "_io_vs_jobs.png")
-graph2hist = TH2F("test histo", "test histo2", 20, 0.0, 820.0, 20, 0.0, 210.0)
+# graph2hist = TH2F("test histo", "test histo2", 20, 0.0, 820.0, 20, 0.0, 210.0)
 #graph2hist.GetXaxis().SetRangeUser(0.0, 820.0)
 # graph2.GetXaxis().SetRangeUser(0.0, 820.0)
-graph2hist.SetTitle(sitename)
-graph2hist.GetXaxis().SetTitle("# of jobs")
-graph2hist.GetYaxis().SetTitle("Total read rate [MB/s]")
-graph2hist.Draw()
+# graph2hist.SetTitle(sitename)
+# graph2hist.GetXaxis().SetTitle("# of jobs")
+# graph2hist.GetYaxis().SetTitle("Total read rate [MB/s]")
+# graph2hist.Draw()
 # graph2.GetYaxis().SetTitleOffset(1.1)
 # graph2.GetYaxis().SetRangeUser(0, 6)
-graph2.Draw("PZ same")
-xmax = 820.0
-graphmax = 210.0
-# xmax = graph2.GetXaxis().GetXmax()
+# graph2.Draw("PZ same")
+
+# TGaxis.SetMaxDigits(4) # Puts x 10^3 by axis
+graph2.SetTitle(sitename)
+graph2.GetXaxis().SetTitle("# of jobs")
+graph2.GetYaxis().SetTitle("Total read rate [MB/s]")
+graph2.GetXaxis().SetLabelSize(labsiz)
+graph2.GetYaxis().SetLabelSize(labsiz)
+graph2.Draw("APZ")
+# xmax = 820.0
+# graphmax = 210.0
+# xmax = 1640.0
+# graphmax = 410.0
+xmax = graph2.GetXaxis().GetXmax()
 # graphmax = graph2.GetMaximum()
-# graphmax = graph2.GetHistogram().GetMaximum()
-# print 'graph max ', graphmax, xmax
+graphmax = graph2.GetHistogram().GetMaximum()
+print 'graph max ', graphmax, xmax
 # if graphmax > 250:
 	# graphmax = 250
 if graphmax < xmax / 4:
