@@ -33,7 +33,7 @@ def doquery(blocknam):
 	blocklist = { 'block' : blocknam }
 	blockparam = urllib.urlencode(blocklist)
 	query = 'https://cmsweb.cern.ch/phedex/datasvc/xml/prod/fileReplicas?' + blockparam
-	fd = urllib2.urlopen(query)
+	fd = urllib2.urlopen(query, None, 600)
 	filetree = ET.parse(fd)
 	fileroot = filetree.getroot()
 	for fileBlock in fileroot:
@@ -51,8 +51,10 @@ if len(sys.argv) < 2:
 node = sys.argv[1] + '*'
 nodelist = {'node' : node }
 nodelist  = urllib.urlencode(nodelist)
-query = 'https://cmsweb.cern.ch/phedex/datasvc/xml/prod/blockReplicas?' + nodelist
-fd = urllib2.urlopen(query)
+completelist = {'complete' : 'y' }
+completelist  = urllib.urlencode(completelist)
+query = 'https://cmsweb.cern.ch/phedex/datasvc/xml/prod/blockReplicas?' + nodelist + '&' + completelist
+fd = urllib2.urlopen(query, None, 600)
 tree = ET.parse(fd)
 
 root = tree.getroot()
