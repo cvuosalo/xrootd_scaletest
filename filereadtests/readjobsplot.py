@@ -4,11 +4,10 @@ import os
 import math
 from tdrStyle import *
 
-if (len(sys.argv) != 7):
-    print "Usage: python make_stat_plots.py test_files test_duration size_of_time_bins test_start_time RTT site_name"
+if (len(sys.argv) != 8):
+    print "Usage: python make_stat_plots.py test_files test_duration size_of_time_bins test_start_time RTT site_name target_time"
     sys.exit(1)
 
-target_rate = 0.25
 tdrstyle = setTDRStyle()
 tdrStyle.SetPadRightMargin(0.05);
 gStyle.SetOptStat(0)
@@ -31,6 +30,7 @@ nbins = int(test_length/bin_size) + 1
 overall_start_time = float(sys.argv[4])
 rtt = float(sys.argv[5])
 sitename = str(sys.argv[6])
+target_time = float(sys.argv[7])	# Time in s to read 1 MB
 
 rttmsg = "RTT %g s (not included)" % rtt
 texboxrtt = TLatex(0.20, 0.88, rttmsg)
@@ -94,9 +94,9 @@ for filename in filelines:
 	    start_time = start_time + start_time_frac
 	    # start_time = int(start_str[:-1]) - overall_start_time
 	   
-	    MB_read = float(results[9]) / 1024.0
-	    if (results[10] != "kB"):
-	    	MB_read = MB_read / 1024.0
+	    data_read = float(results[9]) / 1024.0
+	    if (results[10] != "kB" and target_time < 100):
+	    	data_read = data_read / 1024.0
 	    run_time = float(results[5])
 	    if (first_read_time == -1.0):
 		if (run_time < bin_size and start_time < run_time):
@@ -108,10 +108,10 @@ for filename in filelines:
 	    start_time = start_time + first_read_time
 	    if (rtt < run_time):
 		    run_time = run_time - rtt
-	    # print start_time, MB_read, run_time
+	    # print start_time, data_read, run_time
 	    hist_job_successes.Fill(start_time)
 	    hist_opentimes.Fill(start_time, run_time)
-	    hist_dataread.Fill(start_time, MB_read)
+	    hist_dataread.Fill(start_time, data_read)
 	    bin_num = hist_active_jobs.FindBin(start_time)
 	    if (bin_num > nbins):
 		print 'bad bin, start time ', bin_num, start_time
@@ -152,7 +152,10 @@ print 'read integral = ', hist_dataread.Integral(0, nbins - 1)
 hist_dataread.Scale(1.0/bin_size) # Get total rate
 hist_totrate = hist_dataread.Clone()
 hist_dataread.Divide(hist_active_jobs) # Get rate / job
-hist_dataread.Scale(1.0/target_rate) # Get % of attempted rate
+timeval = target_time
+if (target_time > 100):
+	timeval = timeval / 1024	# Convert to kB
+hist_dataread.Scale(timeval) # Get % of attempted rate
 
 hist_sleeptimes.Add(hist_opentimes) # Get total job time
 hist_iotimes = hist_opentimes.Clone()
@@ -174,7 +177,7 @@ for i in range(nbins - 1):	# Omit last bin because it's incomplete
     readtime = hist_timepread.GetBinContent(i+1)
     readtimeErr = hist_timepread.GetBinError(i+1)
 # print "rate, err ", rate, rateErr
-    # exp_rate = n_clients * target_rate
+    # exp_rate = n_clients / target_time
 
     run_times_combined = hist_opentimes.GetBinContent(i+1)
     # print 'runtime, successes ', run_times_combined, s
@@ -229,11 +232,11 @@ c1.SaveAs("plots/" + outfilebase + "_rate_vs_jobs.png")
 graph3b.SetMarkerStyle(8) # big dot
 graph3b.SetTitle(sitename)
 graph3b.GetXaxis().SetTitle("# of jobs")
-# graph3b.GetYaxis().SetRangeUser(0.3, 2.7)
+# graph3b.GetYaxis().SetRangeUser(0, 30.0)
 if num_lines > 1500:
-	labsiz = 0.04
+	labsiz = 0.03
 else:
-	labsiz = 0.05
+	labsiz = 0.04
 graph3b.GetXaxis().SetLabelSize(labsiz)
 graph3b.GetYaxis().SetLabelSize(labsiz)
 graph3b.GetYaxis().SetTitle("Avg. read time per block [s]")
@@ -256,7 +259,10 @@ hist_readrate.SetTitle(sitename)
 hist_readrate.GetXaxis().SetTitle("Time [s]")
 hist_readrate.GetXaxis().SetLabelSize(labsiz)
 hist_readrate.GetYaxis().SetLabelSize(labsiz)
-hist_readrate.GetYaxis().SetTitle("Avg. rate / read [MB/s]")
+rate_units = "[MB/s]"
+if (target_time > 100):
+	rate_units = "[kB/s]"
+hist_readrate.GetYaxis().SetTitle("Avg. rate / read " + rate_units)
 # hist_readrate.GetYaxis().SetTitleOffset(1.4)
 hist_readrate.Draw("ep")
 #os.system("sleep 5")
@@ -297,10 +303,10 @@ c1.SaveAs("plots/" + outfilebase + "_io_vs_jobs.png")
 # graph2.GetYaxis().SetRangeUser(0, 6)
 # graph2.Draw("PZ same")
 
-# TGaxis.SetMaxDigits(4) # Puts x 10^3 by axis
+# TGaxis.SetMaxDigits(3) # Puts x 10^3 by axis
 graph2.SetTitle(sitename)
 graph2.GetXaxis().SetTitle("# of jobs")
-graph2.GetYaxis().SetTitle("Total read rate [MB/s]")
+graph2.GetYaxis().SetTitle("Total read rate " + rate_units)
 graph2.GetXaxis().SetLabelSize(labsiz)
 graph2.GetYaxis().SetLabelSize(labsiz)
 graph2.Draw("APZ")
@@ -314,10 +320,10 @@ graphmax = graph2.GetHistogram().GetMaximum()
 print 'graph max ', graphmax, xmax
 # if graphmax > 250:
 	# graphmax = 250
-if graphmax < xmax / 4:
-	xmax = graphmax * 4
+if graphmax < xmax / target_time:
+	xmax = graphmax * target_time
 else:
-	graphmax = xmax / 4
+	graphmax = xmax / target_time
 print 'maxes ', xmax, graphmax
 evenline = TLine(0.0, 0.0, xmax, graphmax) 
 evenline.SetLineColor(8)
