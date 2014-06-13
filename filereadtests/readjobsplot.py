@@ -218,13 +218,16 @@ print "ofname: %s" % ofname
 output_file = TFile(ofname, "RECREATE")
 #hist_active_jobs.Draw()
 # graph2.SetMarkerStyle(8) # big dot
+rate_units = "[MB/s]"
+if (target_time > 100):
+	rate_units = "[kB/s]"
 graph3.SetMarkerStyle(8) # big dot
 graph3.SetTitle(sitename)
 # graph3.GetXaxis().SetTitle("Expected file-open rate (Hz)")
 graph3.GetXaxis().SetTitle("# of jobs")
 # graph3.GetXaxis().SetTitle("Total attempted read rate [MB/s]")
 # graph3.GetYaxis().SetTitle("Observed file-open rate (Hz)")
-graph3.GetYaxis().SetTitle("Avg. read rate per block [MB/s]")
+graph3.GetYaxis().SetTitle("Avg. read rate per block " + rate_units)
 # graph3.GetYaxis().SetRangeUser(0, 250)
 # graph3.GetXaxis().SetRangeUser(0, 250)
 graph3.Draw("APZ")
@@ -259,9 +262,6 @@ hist_readrate.SetTitle(sitename)
 hist_readrate.GetXaxis().SetTitle("Time [s]")
 hist_readrate.GetXaxis().SetLabelSize(labsiz)
 hist_readrate.GetYaxis().SetLabelSize(labsiz)
-rate_units = "[MB/s]"
-if (target_time > 100):
-	rate_units = "[kB/s]"
 hist_readrate.GetYaxis().SetTitle("Avg. rate / read " + rate_units)
 # hist_readrate.GetYaxis().SetTitleOffset(1.4)
 hist_readrate.Draw("ep")
@@ -300,7 +300,7 @@ c1.SaveAs("plots/" + outfilebase + "_io_vs_jobs.png")
 # graph2hist.GetYaxis().SetTitle("Total read rate [MB/s]")
 # graph2hist.Draw()
 # graph2.GetYaxis().SetTitleOffset(1.1)
-# graph2.GetYaxis().SetRangeUser(0, 6)
+# graph2.GetYaxis().SetRangeUser(0, 500)
 # graph2.Draw("PZ same")
 
 # TGaxis.SetMaxDigits(3) # Puts x 10^3 by axis
@@ -320,10 +320,10 @@ graphmax = graph2.GetHistogram().GetMaximum()
 print 'graph max ', graphmax, xmax
 # if graphmax > 250:
 	# graphmax = 250
-if graphmax < xmax / target_time:
-	xmax = graphmax * target_time
+if graphmax < xmax / timeval:
+	xmax = graphmax * timeval
 else:
-	graphmax = xmax / target_time
+	graphmax = xmax / timeval
 print 'maxes ', xmax, graphmax
 evenline = TLine(0.0, 0.0, xmax, graphmax) 
 evenline.SetLineColor(8)
