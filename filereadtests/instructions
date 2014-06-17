@@ -35,7 +35,7 @@ The first timestamp output is the starting one, and the last number is the test 
 
 7. To make the plots, use readjobsplot.py. See runplots.sh for an example of the parameters it requires:
 
-python readjobsplot.py stdout_file_list test_duration bin_size start_timestamp RTT sitename
+python readjobsplot.py stdout_file_list test_duration bin_size start_timestamp RTT sitename target_time
 
 stdout_file_list is the list of the stdout files from the test, test_duration is the duration of the test in seconds,
 bin_size is the bin size for the plots in seconds (usually about test_duration/20), and start_timestamp
@@ -43,3 +43,5 @@ is the time stamp of the first file-read attempt.
 
 RTT is the round-trip time from your location to the site. If you can find the name of the XrootD server at the site,
 you can use ping to find the RTT. It is usually around 0.05 s.
+
+target_time is 4 for the standard file-read test. This parameter is the intended time in seconds for a job to read 1 MB.
