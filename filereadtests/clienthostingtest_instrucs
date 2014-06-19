@@ -1,0 +1,15 @@
+1. Log into the glidein submit host:
+
+gsissh submit-4.t2.ucsd.edu
+
+You may encounter errors at this point.
+
+2. Copy the file list, mkglideintask.sh, and xrdfragcp to your home directory. mkglideintask.sh is a new script in my GitHub.
+
+3. Perform the steps for a file-reading test, but you mkglideintask.sh rather than mkreadjobs.sh. The new script takes the same parameters as the old script plus one more, the site name:
+
+../mkglideintask.sh 700  ../splitfiles/caltech/caltechmay21_005 root://xrootd.unl.edu//store/test/xrootd/T2_US_Caltech T2_US_Caltech
+
+4. The script creates only one submit file for all the jobs. Submitting is a little faster this way.
+
+5. As soon as you submit the jobs, they start to run. Do not run ramp_up_jobs because we can't control the Condor pool. You'll have to learn through experience how many jobs the scheduler will run at the same time. 
