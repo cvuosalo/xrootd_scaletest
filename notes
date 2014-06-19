@@ -77,11 +77,19 @@ Plotting
 
 To plot the test results, use make_stat_plots.py. As a convenience, you can write the command line to
 make_stat_plots.sh and run it instead. make_stat_plots.py takes five arguments:
+
 1. List of all stdout file path names from the test
-2. Duration of the test in seconds
+
+2. Duration of the test in seconds. You can calculate this value by
+looking in the test "ulog" to find when the first jobs started exexecuting
+and when the test ended.
+
 3. Bin size in seconds, usually ~ duration/20
-4. Time stamp for the first file-open attempt in the test. This value can be obtained by going into the directory with
-the test results and running the getearliest script.
+
+4. Time stamp for the first file-open attempt in the test. This value
+can be obtained by going into the directory with the test results and
+running the getearliest script.
+
 5. Name of the site.
 
 You may need to try different bin sizes to get better looking plots without stairstep artifacts.
