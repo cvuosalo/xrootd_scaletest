@@ -83,4 +83,10 @@
 # python make_stat_plots.py t2purduemay8b.txt 2859 140 1399582421 T2_US_Purdue
 # python make_stat_plots.py t2purduemay8c.txt 2835 140 1399589876 T2_US_Purdue
 # python make_stat_plots.py t2ucsdtestjan29.txt 4481  220 1391012412 T2_US_UCSD
-python make_stat_plots.py t2purduemay8c.txt 2835 140 1399589876 T2_US_Purdue
+# python make_stat_plots.py t2purduemay8c.txt 2835 140 1399589876 T2_US_Purdue
+# python make_stat_plots.py t2purduejun2.txt 2860 140 1401734660 T2_US_Purdue
+# python make_stat_plots.py t2purduejun5.txt 2832 140 1402004616 T2_US_Purdue
+# python make_stat_plots.py t2purduejun6.txt 2913 140 1402082241 T2_US_Purdue
+# python make_stat_plots.py t2mitjun6.txt 1663 90 1402085406 T2_US_MIT
+# python make_stat_plots.py t2purduejun17.txt 2872 140 1403035637 T2_US_Purdue
+python make_stat_plots.py t2purduejun18.txt 2838 140 1403117141 T2_US_Purdue
