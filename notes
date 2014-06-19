@@ -75,8 +75,10 @@ condor_off -master -all
 
 Plotting
 
-To plot the test results, use make_stat_plots.py. As a convenience, you can write the command line to
-make_stat_plots.sh and run it instead. make_stat_plots.py takes five arguments:
+To plot the test results, use make_stat_plots.py. A "plots" directory must
+exist in the directory where you run this program. As a convenience,
+you can write the command line to make_stat_plots.sh and run it
+instead. make_stat_plots.py takes five arguments:
 
 1. List of all stdout file path names from the test
 
