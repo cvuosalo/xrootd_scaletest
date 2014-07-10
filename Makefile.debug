@@ -1,0 +1,10 @@
+# xrdloc := /usr
+xrdloc := /cvmfs/cms.cern.ch/slc6_amd64_gcc481/external/xrootd/3.3.3
+
+# both: xrdfragcp xrdfragcpnew
+
+xrootd_scaletestdebug: xrootd_scaletestdebug.cxx
+	${CXX} -o $@ -I${xrdloc}/include/xrootd -L${xrdloc}/lib -l XrdCl -lXrdUtils -l pcrecpp -pthread $<
+
+clean:
+	rm -rf xrdfragcp
