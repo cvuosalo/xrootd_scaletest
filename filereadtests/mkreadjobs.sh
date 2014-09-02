@@ -4,6 +4,8 @@
 # $1 -- Number of jobs to create
 # $2 -- File containing a list of file names for the jobs to read
 # $3 -- The XrootD URL prefix to access the files.
+# $4 -- Optional argument to specify number of vector reads. If
+#	omitted, single read is used.
 
 logerror() {
   echo 2>&1 "$@"
@@ -38,8 +40,8 @@ check_proxy() {
 
 }
 
-if [ "$#" != 3 ]; then
-  echo "USAGE: $0 max_jobs file_list url_prefix"
+if [ "$#" -lt 3 ]; then
+  echo "USAGE: $0 jobs max_jobs file_list url_prefix [vread]"
   exit 2
 fi
 
@@ -52,6 +54,9 @@ jobs="$1"
 # rtt="$2"
 file_list="$2"
 xrootd_URL_prefix="$3"
+vread="$4"
+
+test -z "$vread" || vread="--vread $vread"
 
 export TMPDIR=`pwd`
 
@@ -67,10 +72,10 @@ mkdir ${jobname}.jobs
 # rm -f ${jobname}.randsort
 job=0
 for f in `cat $file_list`; do
-  jobstr=`printf "%04d" $job`
+  jobstr=`printf "%05d" $job`
   cat > ${jobname}.jobs/submit.$jobstr<<EOF
 executable = /nfs_scratch/cvuosalo/work/scaletests/xrdfragcp
-arguments = --cmsclientsim 2.5 10 80 --vread 128 --verbose ${xrootd_URL_prefix}${f}
+arguments = --cmsclientsim 2.5 10 80 $vread --verbose ${xrootd_URL_prefix}${f}
 output = stdout.$jobstr.\$(Cluster)
 error = stderr.$jobstr.\$(Cluster)
 stream_output = true
