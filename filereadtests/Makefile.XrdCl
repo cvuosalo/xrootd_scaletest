@@ -1,0 +1,9 @@
+xrdloc := /cvmfs/cms.cern.ch/slc6_amd64_gcc481/external/xrootd/4.0.0-rc1
+
+
+xrdfragcpXrdCl: xrdfragcpXrdCl.cxx
+	${CXX} -o $@ -I${xrdloc}/include/xrootd -L${xrdloc}/lib -lXrdCl -lXrdUtils -l pcrecpp -pthread $<
+	# ${CXX} -o $@ -I${xrdloc}/include/xrootd -L${xrdloc}/lib -lXrdCl -lXrdUtils -l pcrecpp -pthread -static  $<
+
+clean:
+	rm -rf xrdfragcpXrdCl
